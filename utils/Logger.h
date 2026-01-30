@@ -3,6 +3,10 @@
 
 #include <iostream>
 
+#ifndef DV_DEBUG_MODE
+#define DV_DEBUG_MODE
+#endif
+
 enum class LogLevel{
     WARNING,
     ERROR,
@@ -12,11 +16,13 @@ enum class LogLevel{
 class Logger {
     
     public: 
-      Logger();
       #ifdef DV_DEBUG_MODE
-        Logger(const char * fileName,const char* id);
+        Logger(const char * fileName);
+        Logger() = delete;
+      #else 
+        Logger();
       #endif
-      Logger(const char * log_path);
+      //Logger(const char * log_path);
       int log(LogLevel logLevel,const char *msg);
 
     private : 
@@ -25,6 +31,9 @@ class Logger {
 
     private:
       const char * log_file_path ;
+      #ifdef DV_DEBUG_MODE
+        const char *_fileWhoLogName;
+      #endif
       FILE *log_file = nullptr;
 };
 

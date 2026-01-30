@@ -2,7 +2,7 @@
 
 int main()
 {
-    Logger logger;
+    Logger logger("main.cpp");
     logger.log(LogLevel::WARNING,"This platform is not supported");
     logger.log(LogLevel::WARNING,"This can remove your disk");
     logger.log(LogLevel::ERROR,"Access is dinied");

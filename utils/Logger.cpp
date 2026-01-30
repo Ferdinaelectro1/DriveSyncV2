@@ -26,6 +26,7 @@ static const char * colorStr(const char * str,Color color)
     return result;
 }
 
+#ifndef DV_DEBUG_MODE
 Logger::Logger() {
     log_file_path = std::getenv("DSFILE");
     if(log_file_path) {
@@ -35,23 +36,26 @@ Logger::Logger() {
         std::cerr << "[WARNING] Aucun chemin de fichier pour logger le processus"<<std::endl;
     }
 }
-
-#ifdef DV_DEBUG_MODE
-Logger::Logger(const char * fileName,const char* id)
-{
-    
-}
 #endif
 
-Logger::Logger(const char * log_path)
+#ifdef DV_DEBUG_MODE
+Logger::Logger(const char * fileName)
 {
-    if(!setenv("DSFILE",log_path,0)) {
-        Logger();
+    if(!fileName){
+        std::cerr << "[WARNING] Log in debug : No fileName are specid"<<std::endl;
+        _fileWhoLogName = "UnknowFile";
+    } 
+    else _fileWhoLogName = fileName;
+
+    log_file_path = std::getenv("DSFILE");
+    if(log_file_path) {
+        log_file = fopen(log_file_path,"a");
     }
     else {
-        std::cerr <<"[WARNING] La variable d'environnement DSFILE n'a pas pû être modifié"<<std::endl;
+        std::cerr << "[WARNING] Aucun chemin de fichier pour logger le processus"<<std::endl;
     }
 }
+#endif
 
 int Logger::log(LogLevel logLevel,const char *msg) 
 {
@@ -79,12 +83,20 @@ int Logger::log(LogLevel logLevel,const char *msg)
 
     if(log_file)
     {
-        fprintf(log_file,"[%s] %s\n",noColorlogLevelStr,msg);
+        #ifdef DV_DEBUG_MODE
+           fprintf(log_file,"(%s)[%s] %s\n",_fileWhoLogName,noColorlogLevelStr,msg);
+        #else
+           fprintf(log_file,"[%s] %s\n",noColorlogLevelStr,msg);
+        #endif
         fflush(log_file);
     }
     else {
         fprintf(stderr,"[WARNING] Your logger file '%s' is not open\n",log_file_path);
     }
+    #ifdef DV_DEBUG_MODE
+    fprintf(stderr,"(%s)[%s] %s\n",_fileWhoLogName,logLevelStr,msg);
+    #else
     fprintf(stderr,"[%s] %s\n",logLevelStr,msg);
+    #endif
     return 0;
 }
