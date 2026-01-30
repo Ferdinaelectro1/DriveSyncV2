@@ -10,7 +10,7 @@ class SyncManager {
 
     public:
       SyncManager(Watcher* watcher,FileIO* file_io,CloudIO* cloud_io);
-      void startSync(int syncIntervalle);
+      void startSync();
       void stopSync();
       ~SyncManager();
 

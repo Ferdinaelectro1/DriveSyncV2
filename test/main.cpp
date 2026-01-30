@@ -13,6 +13,7 @@ int main() {
     while (true) {
         int length = read(fd, buffer, sizeof(buffer));
         int i = 0;
+        std::cout << "passé" << std::endl;
         while (i < length) {
             auto* event = (struct inotify_event*)&buffer[i];
             if (event->mask & IN_CREATE)
