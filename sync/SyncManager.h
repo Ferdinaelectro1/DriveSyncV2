@@ -4,6 +4,7 @@
 class FileIO;
 class CloudIO;
 class Watcher;
+class Logger;
 
 class SyncManager {
 
@@ -11,11 +12,13 @@ class SyncManager {
       SyncManager(Watcher* watcher,FileIO* file_io,CloudIO* cloud_io);
       void startSync(int syncIntervalle);
       void stopSync();
+      ~SyncManager();
 
     private:
       FileIO *_file_io;
       CloudIO *_cloud_io;
       Watcher *_watcher;
+      Logger *_logger;
 };
 
 #endif
