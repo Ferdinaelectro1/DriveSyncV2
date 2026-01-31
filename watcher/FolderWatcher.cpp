@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include "../utils/Logger.h"
 
+
 Watcher::Watcher(const char *folderPath)
 {
     _folderPath = folderPath;
@@ -54,24 +55,42 @@ FileEvent Watcher::getNewEvent()
             auto* event = (struct inotify_event*)&buffer[i];
             char logMsgBuffer[512];
             if (event->mask & IN_CREATE) {
-                snprintf(logMsgBuffer,sizeof(logMsgBuffer),"Fichier créé : %s",event->name);
+                if(event->mask & IN_ISDIR) {
+                    //Dossier
+                    snprintf(logMsgBuffer,sizeof(logMsgBuffer),"Dossier créé : %s",event->name);
+                    f_event.file_type = FileType::DIR;
+                }
+                else {
+                    //Fichier
+                    snprintf(logMsgBuffer,sizeof(logMsgBuffer),"Fichier créé : %s",event->name);
+                    f_event.file_type = FileType::FILE;
+                }
                 const char *logMsg = logMsgBuffer;
                 _logger->log(LogLevel::INFO,logMsg);
-                f_event.type = FileEventType::CREATE;
-                f_event.file_name = event->name;
+                f_event.event_type = FileEventType::CREATE;
+                f_event.setName(event->name);
             }
             if (event->mask & IN_DELETE) {
-                snprintf(logMsgBuffer,sizeof(logMsgBuffer),"Fichier supprimé : %s",event->name);
+                if(event->mask & IN_ISDIR) {
+                    //Dossier
+                    snprintf(logMsgBuffer,sizeof(logMsgBuffer),"Dossier supprimé : %s",event->name);
+                    f_event.file_type = FileType::DIR;
+                }
+                else {
+                    //Fichier
+                    snprintf(logMsgBuffer,sizeof(logMsgBuffer),"Fichier supprimé : %s",event->name);
+                    f_event.file_type = FileType::FILE;
+                }                
                 const char *logMsg = logMsgBuffer;
                 _logger->log(LogLevel::INFO,logMsg);
-                f_event.type = FileEventType::DELETE;
-                f_event.file_name = event->name;
+                f_event.event_type = FileEventType::DELETE;
+                f_event.setName(event->name);
             }
             i += sizeof(struct inotify_event) + event->len;
             return f_event;
         }
     }
     _run.store(false);
-    f_event.type = FileEventType::NOEVENT;
+    f_event.event_type = FileEventType::NOEVENT;
     return f_event;
 }

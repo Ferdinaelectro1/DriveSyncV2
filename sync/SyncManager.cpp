@@ -34,15 +34,17 @@ void SyncManager::eventHandle()
 {
     while (1) {
         FileEvent f_event =  _watcher->getNewEvent(); //ceci est blocant
-        if(f_event.type == FileEventType::NOEVENT) {
+        if(f_event.event_type == FileEventType::NOEVENT) {
             _logger->log(LogLevel::ERROR,"No event are detected");
             exit(1);
         }
-        if(f_event.type == FileEventType::CREATE){
+        if(f_event.event_type == FileEventType::CREATE){
             _logger->log(LogLevel::INFO,"Great on file are created");
-            _cloud_io->sendToDrive(f_event.file_name);
+            if(f_event.file_type == FileType::FILE) {
+              _cloud_io->sendToDrive(f_event.getName());
+            }
         }
-        if(f_event.type == FileEventType::DELETE)
+        if(f_event.event_type == FileEventType::DELETE)
         {
             _logger->log(LogLevel::INFO,"Great on file are removed"); 
         }
