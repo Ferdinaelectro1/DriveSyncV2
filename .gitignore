@@ -2,6 +2,7 @@
 /.vscode/
 /test/test
 /utils/Logger
+/utils/test_logger
 /fileManager/build
 /fileManager/file_io
 /sync/sync

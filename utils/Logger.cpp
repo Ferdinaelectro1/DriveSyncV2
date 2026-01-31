@@ -64,16 +64,16 @@ int Logger::log(LogLevel logLevel,const char *msg)
     switch (logLevel)
     {
         case LogLevel::INFO :
-            logLevelStr = colorStr("INFO",Color::GREEN);
-            noColorlogLevelStr = "INFO";
+            logLevelStr = colorStr("INFO   ",Color::GREEN);
+            noColorlogLevelStr = "INFO   ";
             break;
         case LogLevel::WARNING :
             logLevelStr = colorStr("WARNING",Color::YELLOW);
             noColorlogLevelStr = "WARNING";
             break;
         case LogLevel::ERROR :
-            logLevelStr = colorStr("ERROR",Color::RED);
-            noColorlogLevelStr = "ERROR";
+            logLevelStr = colorStr("ERROR  ",Color::RED);
+            noColorlogLevelStr = "ERROR  ";
             break;
         default:
             std::cerr << "Niveau de logging invalide" << std::endl;
