@@ -30,6 +30,9 @@ static const char * colorStr(const char * str,Color color)
 }
 
 // Helper function to pad log level strings to a fixed width
+// Attention à cette fonction : utiliser la donnée qu'elle retourne immédiatement avant un autre appel,
+// sinon risque que le second appel de la fonction change le contenu du buffer, vu que ce n'est qu'un pointeur
+// qui est retourné
 static const char * padLogLevel(const char * str)
 {
     static char buffer[32];
