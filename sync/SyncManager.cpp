@@ -1,29 +1,33 @@
 #include "SyncManager.h"
 #include <iostream>
-#include "../utils/Logger.h"
-#include "../watcher/FolderWatcher.h"
 #include <thread>
 #include <chrono>
+#include "../utils/Logger.h"
+#include "../watcher/FolderWatcher.h"
+#include "../cloud/GoogleDriveClient.h"
 
 SyncManager::SyncManager(Watcher* watcher,FileIO* file_io,CloudIO* cloud_io)
 {
     _logger = new Logger("SyncManager.cpp");
    _watcher = new Watcher();
+   _cloud_io = new CloudIO();
     _file_io = file_io;
-    _cloud_io = cloud_io;
 }
 
 SyncManager::~SyncManager() {
-    delete _logger;
     delete _watcher;
+    delete _cloud_io;
+    //_logger->log(LogLevel::WARNING,"Delete are called");
+    delete _logger;
 }
 
 void SyncManager::startSync() {
     _logger->log(LogLevel::INFO,"SyncManager Start Successful");
     _watcher->startWatching();   
     std::thread(&SyncManager::eventHandle,this).detach();
-    std::this_thread::sleep_for(std::chrono::seconds(20));
+    std::this_thread::sleep_for(std::chrono::seconds(180));
     _watcher->stopWatching();
+    _logger->log(LogLevel::WARNING,"SyncManager func start are stopped");
 }
 
 void SyncManager::eventHandle()
@@ -36,6 +40,7 @@ void SyncManager::eventHandle()
         }
         if(f_event.type == FileEventType::CREATE){
             _logger->log(LogLevel::INFO,"Great on file are created");
+            _cloud_io->sendToDrive(f_event.file_name);
         }
         if(f_event.type == FileEventType::DELETE)
         {

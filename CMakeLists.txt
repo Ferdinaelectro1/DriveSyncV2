@@ -10,6 +10,9 @@ set(SRC
     ../utils/Logger.cpp
     ../watcher/FolderWatcher.h
     ../watcher/FolderWatcher.cpp
+    ../cloud/GoogleDriveClient.h
+    ../cloud/GoogleDriveClient.cpp
+    ../cloud/key.h
 )
 
 add_executable(
@@ -17,3 +20,4 @@ add_executable(
     ${SRC}
 )
 
+target_link_libraries(${PROJECT_NAME} PRIVATE curl)
