@@ -35,7 +35,7 @@ void Watcher::startWatching()
 
 void Watcher::stopWatching()
 {
-    _logger->log(LogLevel::INFO,"Watching are stopped");
+    _logger->log(LogLevel::WARNING,"Watching are stopped");
     _run.store(false);
     inotify_rm_watch(_fd, _wd);
     close(_fd);
@@ -72,9 +72,6 @@ FileEvent Watcher::getNewEvent()
         }
     }
     _run.store(false);
-    _logger->log(LogLevel::INFO,"Watching are stopped");
-    inotify_rm_watch(_fd, _wd);
-    close(_fd);
     f_event.type = FileEventType::NOEVENT;
     return f_event;
 }

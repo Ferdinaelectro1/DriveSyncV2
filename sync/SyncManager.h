@@ -15,6 +15,9 @@ class SyncManager {
       ~SyncManager();
 
     private:
+      void eventHandle();
+      
+    private:
       FileIO *_file_io;
       CloudIO *_cloud_io;
       Watcher *_watcher;
