@@ -10,6 +10,9 @@ enum class Color
     CYAN = 36
 };
 
+// Width for log level strings to ensure alignment
+static const int LOG_LEVEL_WIDTH = 7;
+
 //Attention à cette fonction , utiliser la donnée qu'elle retourne imédiatement avant un autre appel ,
 //sinon risque que le second appel de la fonction change le contenu du buffer , vu que ce n'est qu'un pointeur
 //qui est retourné
@@ -24,6 +27,19 @@ static const char * colorStr(const char * str,Color color)
     snprintf(buffer,sizeof(buffer),"\033[%dm%s\033[0m",static_cast<int>(color),str);
     const char *result = buffer;
     return result;
+}
+
+// Helper function to pad log level strings to a fixed width
+static const char * padLogLevel(const char * str)
+{
+    static char buffer[32];
+    int len = strlen(str);
+    if(len >= LOG_LEVEL_WIDTH) {
+        return str;
+    }
+    int padding = LOG_LEVEL_WIDTH - len;
+    snprintf(buffer, sizeof(buffer), "%s%*s", str, padding, "");
+    return buffer;
 }
 
 #ifndef DV_DEBUG_MODE
@@ -64,16 +80,16 @@ int Logger::log(LogLevel logLevel,const char *msg)
     switch (logLevel)
     {
         case LogLevel::INFO :
-            logLevelStr = colorStr("INFO   ",Color::GREEN);
-            noColorlogLevelStr = "INFO   ";
+            logLevelStr = colorStr(padLogLevel("INFO"),Color::GREEN);
+            noColorlogLevelStr = padLogLevel("INFO");
             break;
         case LogLevel::WARNING :
-            logLevelStr = colorStr("WARNING",Color::YELLOW);
-            noColorlogLevelStr = "WARNING";
+            logLevelStr = colorStr(padLogLevel("WARNING"),Color::YELLOW);
+            noColorlogLevelStr = padLogLevel("WARNING");
             break;
         case LogLevel::ERROR :
-            logLevelStr = colorStr("ERROR  ",Color::RED);
-            noColorlogLevelStr = "ERROR  ";
+            logLevelStr = colorStr(padLogLevel("ERROR"),Color::RED);
+            noColorlogLevelStr = padLogLevel("ERROR");
             break;
         default:
             std::cerr << "Niveau de logging invalide" << std::endl;
