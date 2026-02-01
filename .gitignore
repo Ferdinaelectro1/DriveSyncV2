@@ -8,4 +8,5 @@
 /sync/sync
 /cloud/main
 /cloud/key.h
+/utils/TempLogger.cpp
 

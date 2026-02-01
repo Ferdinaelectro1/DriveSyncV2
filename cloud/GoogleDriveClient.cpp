@@ -1,12 +1,17 @@
 #include "GoogleDriveClient.h"
+#include <string>
+#include <vector>
 #include "../utils/Logger.h"
 #include "key.h"
 
+
 CloudIO::CloudIO() {
     _logger = new Logger("GoogleDriveClient.cpp");
+    curl_global_init(CURL_GLOBAL_ALL); //Initialisation global de curl
 }
 
 CloudIO::~CloudIO() {
+    curl_global_cleanup(); //Fermetture global de curl
     delete _logger;
 }
 
@@ -16,38 +21,60 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::stri
     return total;
 }
 
-bool CloudIO::sendToDrive(const std::string & fileName) {
+bool CloudIO::createToDrive(const std::string & name,bool isFile) {
     bool success = true;
-    // Lecture du fichier
-    std::ifstream file(fileName, std::ios::binary);
-    if (!file) {
-        _logger->log(LogLevel::ERROR,"Impossible d'ouvrir le fichier.");
-        success = false;
-        return success;
-    }
-    std::string file_contents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    const char *content_type;
+    std::string metaData;
+    const char *driveUrl;
+    if(isFile)  {
+        // Lecture du fichier
+        std::ifstream file(name, std::ios::binary);
+        if (!file) {
+            _logger->log(LogLevel::ERROR,"Impossible d'ouvrir le fichier.");
+            success = false;
+            return success;
+        }
+        std::vector<char> buffer(
+            (std::istreambuf_iterator<char>(file)),
+            std::istreambuf_iterator<char>()
+        );
 
-    curl_global_init(CURL_GLOBAL_ALL);
+        file.close();
+
+        content_type = "Content-Type: multipart/related; boundary=boundary123";
+        driveUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+        metaData =
+            "--boundary123\r\n"
+            "Content-Type: application/json; charset=UTF-8\r\n"
+            "\r\n"
+            "{ \"name\": \"" + name + "\", "
+            "\"mimeType\": \"application/octet-stream\", "
+            "\"parents\": [\"14NuNzh2ktZswGVtcmlb7dhFkOXcpF0SY\"] }\r\n"
+            "--boundary123\r\n"
+            "Content-Type: application/octet-stream\r\n"
+            "\r\n";
+        metaData.append(buffer.begin(),buffer.end());
+        metaData.append("\r\n--boundary123--\r\n");
+    } 
+    //Dossier
+    else {
+        content_type = "Content-Type: application/json; charset=UTF-8";
+        driveUrl = "https://www.googleapis.com/drive/v3/files";
+        metaData = "{ \"name\": \""+name+"\", "
+                    "\"mimeType\": \"application/vnd.google-apps.folder\""
+                ", \"parents\": [\"14NuNzh2ktZswGVtcmlb7dhFkOXcpF0SY\"] }";
+    }
+
     _curl = curl_easy_init();
     if(_curl) {
         struct curl_slist *headers = nullptr;
         headers = curl_slist_append(headers, ("Authorization: Bearer " + _access_token).c_str());
-        headers = curl_slist_append(headers, "Content-Type: multipart/related; boundary=boundary123");
+        headers = curl_slist_append(headers, content_type);
 
-        //14NuNzh2ktZswGVtcmlb7dhFkOXcpF0SY
-        std::string metadata = 
-            "--boundary123\r\n"
-            "Content-Type: application/json; charset=UTF-8\r\n\r\n"
-             "{ \"name\": \"" + fileName + "\", \"parents\": [\"14NuNzh2ktZswGVtcmlb7dhFkOXcpF0SY\"] }\r\n"
-            "--boundary123\r\n"
-            "Content-Type: text/plain\r\n\r\n" +
-            file_contents +
-            "\r\n--boundary123--";
-
-        curl_easy_setopt(_curl, CURLOPT_URL, "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart");
+        curl_easy_setopt(_curl, CURLOPT_URL, driveUrl);
         curl_easy_setopt(_curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(_curl, CURLOPT_POSTFIELDS, metadata.c_str());
-        curl_easy_setopt(_curl, CURLOPT_POSTFIELDSIZE, metadata.size());
+        curl_easy_setopt(_curl, CURLOPT_POSTFIELDS, metaData.data());
+        curl_easy_setopt(_curl, CURLOPT_POSTFIELDSIZE,metaData.size());
         std::string response;
         curl_easy_setopt(_curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(_curl, CURLOPT_WRITEDATA, &response);
@@ -69,6 +96,13 @@ bool CloudIO::sendToDrive(const std::string & fileName) {
         curl_slist_free_all(headers);
         curl_easy_cleanup(_curl);
     }
-    curl_global_cleanup();
     return success;
+}
+
+bool CloudIO::createFileToDrive(const std::string & fileName) {
+    return createToDrive(fileName,true);
+}
+
+bool CloudIO::createDirToDrive(const std::string & dirName) {
+    return createToDrive(dirName,false);
 }

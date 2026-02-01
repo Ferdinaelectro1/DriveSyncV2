@@ -9,8 +9,12 @@ class Logger;
 class CloudIO {
     public: 
       CloudIO();
-      bool sendToDrive(const std::string & fileName);
+      bool createFileToDrive(const std::string & fileName);
+      bool createDirToDrive(const std::string & dirName);
       ~CloudIO();
+
+    private:
+      bool createToDrive(const std::string & name,bool isFile);
 
     private:
       CURL *_curl;

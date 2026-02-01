@@ -29,7 +29,7 @@ void SyncManager::startSync() {
     _logger->log(LogLevel::INFO,"SyncManager Start Successful");
     _watcher->startWatching();   
     _getEventThread = std::thread(&SyncManager::eventHandle,this);
-    std::this_thread::sleep_for(std::chrono::seconds(60));
+    std::this_thread::sleep_for(std::chrono::seconds(180));
     stopSync();
 }
 
@@ -50,7 +50,10 @@ void SyncManager::eventHandle()
         if(f_event.event_type == FileEventType::CREATE){
             _logger->log(LogLevel::INFO,"Great on file are created");
             if(f_event.file_type == FileType::FILE) {
-              _cloud_io->sendToDrive(f_event.getName());
+              _cloud_io->createFileToDrive(f_event.getName());
+            }
+            else if(f_event.file_type == FileType::DIR) {
+              _cloud_io->createDirToDrive(f_event.getName());
             }
         }
         if(f_event.event_type == FileEventType::DELETE)
