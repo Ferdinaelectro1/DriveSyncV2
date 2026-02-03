@@ -48,12 +48,13 @@ void SyncManager::eventHandle()
             continue;
         }
         if(f_event.event_type == FileEventType::CREATE){
-            _logger->log(LogLevel::INFO,"Great on file are created");
             if(f_event.file_type == FileType::FILE) {
               _cloud_io->createFileToDrive(f_event.getName());
+              _logger->log(LogLevel::INFO,"Great on file are created");
             }
             else if(f_event.file_type == FileType::DIR) {
               _cloud_io->createDirToDrive(f_event.getName());
+              _logger->log(LogLevel::INFO,"Great on Dir are created");
             }
         }
         if(f_event.event_type == FileEventType::DELETE)
