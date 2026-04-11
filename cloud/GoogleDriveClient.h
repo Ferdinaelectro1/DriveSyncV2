@@ -5,21 +5,22 @@
 #include <fstream>
 
 class Logger;
+class LocalSettings;
 
 class CloudIO {
     public: 
       CloudIO();
       bool createFileToDrive(const std::string & fileName);
       bool createDirToDrive(const std::string & dirName);
+      bool deleteFileFromDrive(const std::string & elementName);
       ~CloudIO();
 
     private:
-      bool createToDrive(const std::string & name,bool isFile);
+      std::string createToDrive(const std::string & name,bool isFile);
 
     private:
-      CURL *_curl;
-      CURLcode _res;
       Logger *_logger;
+      LocalSettings *_localSettings;
 };
 
 #endif

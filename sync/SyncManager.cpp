@@ -16,12 +16,12 @@ SyncManager::SyncManager(Watcher* watcher,FileIO* file_io,CloudIO* cloud_io)
 }
 
 SyncManager::~SyncManager() {
-    delete _watcher;
-    delete _cloud_io;
-    delete _logger;
     _eventRun.store(false);
     if(_getEventThread.joinable()) 
        _getEventThread.join();
+    delete _watcher;
+    delete _cloud_io;
+    delete _logger;
 }
 
 void SyncManager::startSync() {
@@ -29,8 +29,7 @@ void SyncManager::startSync() {
     _logger->log(LogLevel::INFO,"SyncManager Start Successful");
     _watcher->startWatching();   
     _getEventThread = std::thread(&SyncManager::eventHandle,this);
-    std::this_thread::sleep_for(std::chrono::seconds(180));
-    stopSync();
+    _getEventThread.join();
 }
 
 void SyncManager::stopSync(){
@@ -59,6 +58,7 @@ void SyncManager::eventHandle()
         }
         if(f_event.event_type == FileEventType::DELETE)
         {
+            _cloud_io->deleteFileFromDrive(f_event.getName());
             _logger->log(LogLevel::INFO,"Great on file are removed"); 
         }
     }
