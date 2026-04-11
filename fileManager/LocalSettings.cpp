@@ -3,16 +3,22 @@
 
 LocalSettings::LocalSettings()
 {
-    if(!std::filesystem::is_directory(LOCAL_SETTINGS_DIR)) {
-       std::filesystem::create_directory(LOCAL_SETTINGS_DIR);
+    const char* home = getenv("HOME");
+    if(!home) {
+        home = "/tmp"; 
     }
-    if(!std::filesystem::exists(LOCAL_SETTINGS_PATH)) {
-        std::ofstream output(LOCAL_SETTINGS_PATH);
+    _settingsDir = std::string(home) + "/.config/drivesync/";
+    _settingsPath = std::string(home) + "/.config/drivesync/elementId.json";
+    if(!std::filesystem::is_directory(_settingsDir)) {
+       std::filesystem::create_directory(_settingsDir);
+    }
+    if(!std::filesystem::exists(_settingsPath)) {
+        std::ofstream output(_settingsPath);
         output.close();
     } else {
-        std::ifstream input(LOCAL_SETTINGS_PATH);
+        std::ifstream input(_settingsPath);
         nlohmann::json json;
-        if(!std::filesystem::is_empty(LOCAL_SETTINGS_PATH)) {
+        if(!std::filesystem::is_empty(_settingsPath)) {
             input >> json;
             for(auto& [key,value] : json.items()) {
                 _localElementIdMap[key] = value;
@@ -45,7 +51,7 @@ void LocalSettings::removeElement(const std::string &elementName)
 
 void LocalSettings::save()
 {
-    std::ofstream output(LOCAL_SETTINGS_PATH);
+    std::ofstream output(_settingsPath);
     if(output) {
         nlohmann::json json = _localElementIdMap;
         output << json;

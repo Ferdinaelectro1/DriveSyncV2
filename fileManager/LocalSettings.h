@@ -5,9 +5,6 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 
-#define LOCAL_SETTINGS_DIR  "~/.config/drivesync/"
-#define LOCAL_SETTINGS_PATH "~/.config/drivesync/elementId.json"
-
 class LocalSettings {
     public:
       LocalSettings();
@@ -16,5 +13,7 @@ class LocalSettings {
       void removeElement(const std::string& elementName);
     private:
       std::unordered_map<std::string,std::string> _localElementIdMap;
+      std::string _settingsDir;
+      std::string _settingsPath;
       void save();
 };
