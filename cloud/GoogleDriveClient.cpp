@@ -32,6 +32,7 @@ std::string CloudIO::createToDrive(const std::string & name,bool isFile) {
     std::string metaData;
     std::string returnId = "";
     const char *driveUrl;
+    long http_code;
     if(isFile)  {
         // Lecture du fichier
         std::ifstream file(name, std::ios::binary);
@@ -85,21 +86,32 @@ std::string CloudIO::createToDrive(const std::string & name,bool isFile) {
         curl_easy_setopt(_curl, CURLOPT_WRITEDATA, &response);
 
         _res = curl_easy_perform(_curl);
+        curl_easy_getinfo(_curl,CURLINFO_RESPONSE_CODE,&http_code);
         if(_res != CURLE_OK) {
             std::string msg = "Erreur curl: ";
             msg += curl_easy_strerror(_res);
             _logger->log(LogLevel::ERROR,msg.c_str());
         } else if(_res == CURLE_OK)
         {
-           std::string msg = "Reponse Google Drive : "; 
-           msg += response;
-           _logger->log(LogLevel::INFO,msg.c_str());
-           nlohmann::json json = nlohmann::json::parse(response);
-           if(json.contains("id")) {
-               returnId = json["id"];
-           } else {
-               _logger->log(LogLevel::ERROR,"Cette réponse ne contient pas d'id");
-           }
+            std::string msg = "Reponse Google Drive : "; 
+            msg += response;
+            _logger->log(LogLevel::INFO,msg.c_str());
+            if(http_code == 401) {
+                if(regenaratetoken()) {
+                    returnId = createToDrive(name,isFile);
+                } else {
+                    _logger->log(LogLevel::ERROR,"Impossible de regénerer le token");
+                }
+            } else if(http_code == 200) {
+                nlohmann::json json = nlohmann::json::parse(response);
+                if(json.contains("id")) {
+                    returnId = json["id"];
+                } else {
+                    _logger->log(LogLevel::ERROR,"Cette réponse ne contient pas d'id");
+                }
+            } else {
+                _logger->log(LogLevel::ERROR,"Impossible de faire la création depuis google Drive");
+            }
         }
 
         curl_slist_free_all(headers);
@@ -157,7 +169,15 @@ bool CloudIO::deleteFileFromDrive(const std::string &elementName)
                 succes = true;
                 _localSettings->removeElement(elementName);
                 _logger->log(LogLevel::INFO,"Suppression réussie (HTTP 204)");
-            } else if(httpCode == 404) {
+            } else if(httpCode == 401) {
+                if(regenaratetoken()) {
+                    succes = deleteFileFromDrive(elementName);
+                } else {
+                    _logger->log(LogLevel::ERROR,"Impossible de regénerer le token");
+                    succes = false;
+                }
+            }
+            else {
                 _logger->log(LogLevel::ERROR, std::string("Echec suppression HTTP: " + std::to_string(httpCode)).c_str());
                 succes = false;
             }
@@ -167,4 +187,58 @@ bool CloudIO::deleteFileFromDrive(const std::string &elementName)
         curl_easy_cleanup(_curl);
     }
     return succes;
+}
+
+/**
+ * This function is use to regenerate token, because, all token expire after 1 hours
+ */
+bool CloudIO::regenaratetoken() {
+    CURL *curl;
+    CURLcode resp;
+    long httpCode;
+    curl = curl_easy_init();
+    bool success = false;
+    const char* url = "https://oauth2.googleapis.com/token";
+    if(curl) {
+        std::string postData = "client_id=" + client_id + 
+                    "&client_secret=" + client_secret + 
+                    "&refresh_token=" + refresh_token + 
+                    "&grant_type=refresh_token";
+        curl_easy_setopt(curl,CURLOPT_URL,url);
+        curl_easy_setopt(curl,CURLOPT_POSTFIELDS,postData.data());
+        curl_easy_setopt(curl,CURLOPT_POSTFIELDSIZE,postData.size());
+        std::string response;
+        curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,WriteCallback);
+        curl_easy_setopt(curl,CURLOPT_WRITEDATA,&response);
+        resp = curl_easy_perform(curl);
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+        if(resp != CURLE_OK) {
+            std::string msg = "Erreur curl: ";
+            msg += curl_easy_strerror(resp);
+            _logger->log(LogLevel::ERROR,msg.c_str());
+            success = false;
+        } 
+        else if(resp == CURLE_OK)
+        {
+            if(httpCode == 200) {
+                nlohmann::json json = nlohmann::json::parse(response);
+                if(json.contains("access_token")) {
+                    const std::string msg = "new token = "+std::string(json["access_token"]);
+                    _logger->log(LogLevel::INFO,msg.c_str());
+                    set_token(json["access_token"]);
+                    success = true;
+                } else {
+                    _logger->log(LogLevel::ERROR,"Réponse reçu sans le nouveau token");
+                    success = false;
+                }
+            } else if(httpCode == 404) {
+                _logger->log(LogLevel::ERROR, std::string("Echec refresh token HTTP: " + std::to_string(httpCode)).c_str());
+            }
+        }
+        curl_easy_cleanup(curl);
+    } else {
+        _logger->log(LogLevel::ERROR,"Erreur d'initialisation de curl pour refresh le token");
+        return false;
+    }
+    return success;
 }

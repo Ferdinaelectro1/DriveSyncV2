@@ -17,6 +17,7 @@ class CloudIO {
 
     private:
       std::string createToDrive(const std::string & name,bool isFile);
+      bool regenaratetoken();
 
     private:
       Logger *_logger;
