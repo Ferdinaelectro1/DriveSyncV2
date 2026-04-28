@@ -20,7 +20,7 @@ cmake ..
 make
 ```
 
-4. Create your `cloud/key.h` file with your own Google OAuth2 credentials (see [Readme.md](README.md#configuration))
+4. Create your `cloud/key.h` file with your own Google OAuth2 credentials (see [README](Readme.md#configuration))
 
 ## How to Contribute
 
