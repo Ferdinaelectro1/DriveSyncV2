@@ -1,5 +1,5 @@
 # DriveSyncV2
-*[Read in English](README.md)*
+*[Read in English](Readme.md)*
 > ⚠️ Projet en cours de développement — certaines fonctionnalités sont encore expérimentales.
 
 DriveSyncV2 est un synchronisateur en temps réel entre un dossier local et Google Drive, écrit en C++. Il surveille un dossier local et reflète automatiquement chaque création ou suppression de fichier/dossier sur Google Drive.

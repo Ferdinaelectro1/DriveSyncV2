@@ -1,5 +1,5 @@
 # DriveSyncV2
-*[Lire en français](README.fr.md)*
+*[Lire en français](Readme.fr.md)*
 
 > ⚠️ Work in progress — some features are still experimental.
 
