@@ -24,6 +24,15 @@ SyncManager::~SyncManager() {
     delete _logger;
 }
 
+int SyncManager::getStopfd()
+{
+    /**
+     * Celui ci retourne juste le fd d'arrêt fournit 
+     * par le watcher
+     */
+    return _watcher->getStopfd();
+}
+
 void SyncManager::startSync() {
     _eventRun.store(true);
     _logger->log(LogLevel::INFO,"SyncManager Start Successful");
@@ -34,14 +43,21 @@ void SyncManager::startSync() {
 
 void SyncManager::stopSync(){
     _eventRun.store(false);
-    _watcher->stopWatching();
     _logger->log(LogLevel::WARNING,"SyncManager func start are stopped");
+}
+
+void SyncManager::wait() {
+    if(_getEventThread.joinable())
+        _getEventThread.join();
 }
 
 void SyncManager::eventHandle()
 {
     while (_eventRun.load()) {
         FileEvent f_event =  _watcher->getNewEvent(); //ceci est blocant
+        if(f_event.event_type == FileEventType::STOP_EVENT) {
+            stopSync();
+        }
         if(f_event.event_type == FileEventType::NOEVENT) {
             _logger->log(LogLevel::WARNING,"No event are detected");
             continue;

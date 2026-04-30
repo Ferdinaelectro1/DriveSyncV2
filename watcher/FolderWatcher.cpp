@@ -9,6 +9,7 @@ Watcher::Watcher(const char *folderPath)
     _folderPath = folderPath;
     _logger = new Logger("FolderWatcher.cpp");
     _run.store(false);
+    pipe(_pipe_fd);
 }
 
 Watcher::~Watcher(){
@@ -46,13 +47,26 @@ void Watcher::stopWatching()
 FileEvent Watcher::getNewEvent()
 {
    FileEvent f_event;
+   f_event.event_type = FileEventType::NOEVENT;
    _logger->log(LogLevel::INFO,"Init get Event");
     while (_run.load()) {
         char buffer[1024];
-        int length = read(_fd, buffer, sizeof(buffer));
-        int i = 0;
-        while (i < length) {
-            auto* event = (struct inotify_event*)&buffer[i];
+        //_pipe_fd[0] le fd du tunel de lecture du pipe serait surveillé par select
+        int maxFd = std::max(_fd,_pipe_fd[0]) + 1;
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(_fd,&fds);
+        FD_SET(_pipe_fd[0],&fds);
+        select(maxFd,&fds,nullptr,nullptr,nullptr);
+        int length = -1;
+        if(FD_ISSET(_fd,&fds)) { //le inotify a des données presents
+            length = read(_fd, buffer, sizeof(buffer));   
+        }
+        if(FD_ISSET(_pipe_fd[0],&fds)) {//le pipe a reçu des données "stop"
+            stopWatching();
+        }
+        while (length > 0) {
+            auto* event = (struct inotify_event*)&buffer[0];
             char logMsgBuffer[512];
             if (event->mask & IN_CREATE) {
                 if(event->mask & IN_ISDIR) {
@@ -86,11 +100,20 @@ FileEvent Watcher::getNewEvent()
                 f_event.event_type = FileEventType::DELETE;
                 f_event.setName(event->name);
             }
-            i += sizeof(struct inotify_event) + event->len;
             return f_event;
         }
     }
-    _run.store(false);
-    f_event.event_type = FileEventType::NOEVENT;
+    f_event.event_type = FileEventType::STOP_EVENT;
     return f_event;
+}
+
+int Watcher::getStopfd()
+{
+    /**
+     * On retourne ici le fd du pipe d'écriture pour pouvoir
+     * utiliser le fd d'écriture dans le main pour 
+     * écrire deçu quand le signal serait reçu afin de couper la 
+     * boucle du watcher
+     */
+    return _pipe_fd[1];
 }

@@ -10,7 +10,8 @@ class Logger;
 enum class FileEventType{
     CREATE,
     DELETE,
-    NOEVENT
+    NOEVENT,
+    STOP_EVENT
 };
 
 enum class FileType {
@@ -55,6 +56,7 @@ class Watcher {
        void startWatching();
        void stopWatching();
        FileEvent getNewEvent();
+       int getStopfd();
 
     private:
        const char *_folderPath;
@@ -62,6 +64,7 @@ class Watcher {
        int _fd;
        int _wd;
        std::atomic<bool> _run;
+       int _pipe_fd[2];
 };
 
 

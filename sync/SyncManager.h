@@ -15,6 +15,8 @@ class SyncManager {
       void startSync();
       void stopSync();
       ~SyncManager();
+      int getStopfd();
+      void wait();
 
     private:
       void eventHandle();

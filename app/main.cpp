@@ -1,25 +1,21 @@
 #include "../sync/SyncManager.h"
 #include <csignal>
 #include <atomic>
+#include <thread>
 
-std::atomic<bool> running(true);
+int stopFd; //le fd permettant d'arrêter le watcher car le watcher est blocant
 
-void signalHandler(int signal) {
-    write(1, "Signal reçu!\n", 13); // write() est async-signal-safe
-    running.store(false);
+void signalHandler(int) {
+    write(stopFd,"stop",4); //on écrit sur le pipe pour arrêter dans le select
 }
 
 int main()
 {
     std::signal(SIGINT, signalHandler);
     
-    SyncManager syncManager(nullptr,nullptr,nullptr);
+    SyncManager syncManager;
+    stopFd = syncManager.getStopfd();
     syncManager.startSync();
-    
-    while(running.load()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-    
-    syncManager.stopSync();
+    syncManager.wait();
     return 0;
 }
