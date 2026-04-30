@@ -11,7 +11,7 @@ class Logger;
 class SyncManager {
 
     public:
-      SyncManager(Watcher* watcher,FileIO* file_io,CloudIO* cloud_io);
+      SyncManager(Watcher* watcher=nullptr,FileIO* file_io=nullptr,CloudIO* cloud_io=nullptr);
       void startSync();
       void stopSync();
       ~SyncManager();
