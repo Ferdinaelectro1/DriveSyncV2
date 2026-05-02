@@ -1,6 +1,33 @@
 #include "LocalSettings.h"
 #include <fstream>
 
+static void loadFromFile(const std::string &path, std::unordered_map<std::string, std::string> &map)
+{
+    if(!std::filesystem::exists(path)) {
+        std::ofstream output(path);
+        output.close();
+    } else {
+        std::ifstream input(path);
+        nlohmann::json json;
+        if(!std::filesystem::is_empty(path)) {
+            input >> json;
+            for(auto& [key,value] : json.items()) {
+                map[key] = value;
+            }
+        }
+        input.close();
+    }
+}
+
+static void saveMap(const std::string &path, std::unordered_map<std::string, std::string> &map) {
+    std::ofstream output1(path);
+    if(output1) {
+        nlohmann::json json = map;
+        output1 << json;
+    }
+    output1.close();
+}
+
 LocalSettings::LocalSettings()
 {
     const char* home = getenv("HOME");
@@ -8,24 +35,13 @@ LocalSettings::LocalSettings()
         home = "/tmp"; 
     }
     _settingsDir = std::string(home) + "/.config/drivesync/";
-    _settingsPath = std::string(home) + "/.config/drivesync/elementId.json";
+    _drive_id_settingsPath = std::string(home) + "/.config/drivesync/elementId.json";
+    _config_settingsPath = std::string(home) + "/.config/drivesync/config.json";
     if(!std::filesystem::is_directory(_settingsDir)) {
        std::filesystem::create_directory(_settingsDir);
     }
-    if(!std::filesystem::exists(_settingsPath)) {
-        std::ofstream output(_settingsPath);
-        output.close();
-    } else {
-        std::ifstream input(_settingsPath);
-        nlohmann::json json;
-        if(!std::filesystem::is_empty(_settingsPath)) {
-            input >> json;
-            for(auto& [key,value] : json.items()) {
-                _localElementIdMap[key] = value;
-            }
-        }
-        input.close();
-    }
+    loadFromFile(_drive_id_settingsPath,_localElementIdMap);
+    loadFromFile(_config_settingsPath,_localConfigMap);
 }
 
 std::optional<std::string> LocalSettings::getElementId(const std::string &elementName) const
@@ -49,12 +65,21 @@ void LocalSettings::removeElement(const std::string &elementName)
     save();
 }
 
+std::optional<std::string> LocalSettings::getLocalConfig(const std::string &key)
+{
+    return _localConfigMap.find(key) != _localConfigMap.end() 
+    ? std::optional<std::string>(_localConfigMap.at(key)) 
+    : std::nullopt;
+}
+
+void LocalSettings::setLocalConfig(const std::string &key, const std::string &value)
+{
+    _localConfigMap[key] = value;
+    save();
+}
+
 void LocalSettings::save()
 {
-    std::ofstream output(_settingsPath);
-    if(output) {
-        nlohmann::json json = _localElementIdMap;
-        output << json;
-    }
-    output.close();
+    saveMap(_drive_id_settingsPath,_localElementIdMap);
+    saveMap(_config_settingsPath,_localConfigMap);
 }

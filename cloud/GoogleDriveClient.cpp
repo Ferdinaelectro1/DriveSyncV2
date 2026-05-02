@@ -10,6 +10,10 @@
 CloudIO::CloudIO() {
     _logger = new Logger("GoogleDriveClient.cpp");
     _localSettings = new LocalSettings();
+    const auto acces_token = _localSettings->getLocalConfig("access_token");
+    if(acces_token.has_value()) {
+        set_token(acces_token.value());
+    }
     curl_global_init(CURL_GLOBAL_ALL); //Initialisation global de curl
 }
 
@@ -226,6 +230,7 @@ bool CloudIO::regenaratetoken() {
                     const std::string msg = "new token = "+std::string(json["access_token"]);
                     _logger->log(LogLevel::INFO,msg.c_str());
                     set_token(json["access_token"]);
+                    _localSettings->setLocalConfig("access_token",json["access_token"]);
                     success = true;
                 } else {
                     _logger->log(LogLevel::ERROR,"Réponse reçu sans le nouveau token");
