@@ -1,4 +1,5 @@
 #include "LocalSettings.h"
+#include "../config/Config.h"
 #include <fstream>
 
 static void loadFromFile(const std::string &path, std::unordered_map<std::string, std::string> &map)
@@ -42,6 +43,14 @@ LocalSettings::LocalSettings()
     }
     loadFromFile(_drive_id_settingsPath,_localElementIdMap);
     loadFromFile(_config_settingsPath,_localConfigMap);
+}
+
+bool LocalSettings::isloadingRequiredSettings()
+{
+    if(_localConfigMap.find("client_id") == _localConfigMap.end())     return false;
+    else if(_localConfigMap.find("client_secret") == _localConfigMap.end()) return false;
+    else if(_localConfigMap.find("refresh_token") == _localConfigMap.end()) return false;
+    return true;
 }
 
 std::optional<std::string> LocalSettings::getElementId(const std::string &elementName) const

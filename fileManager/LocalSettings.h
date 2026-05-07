@@ -8,6 +8,7 @@
 class LocalSettings {
     public:
       LocalSettings();
+      [[nodiscard]] bool isloadingRequiredSettings();
       [[nodiscard]] std::optional<std::string> getElementId(const std::string& elementName) const;
       void setId(const std::string& elementName, const std::string& elementId);
       void removeElement(const std::string& elementName);

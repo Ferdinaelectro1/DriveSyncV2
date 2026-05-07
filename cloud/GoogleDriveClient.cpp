@@ -1,19 +1,42 @@
 #include "GoogleDriveClient.h"
 #include <string>
 #include <vector>
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include "../fileManager/LocalSettings.h"
 #include "../utils/Logger.h"
-#include "key.h"
+#include "../config/Config.h"
 
+static std::string getInput(const std::string& msg, size_t requiredLen) {
+    std::string currentInput = "";
+    std::cout << msg;
+    std::cin  >> currentInput;
+    while (currentInput.size() < requiredLen)
+    {
+        std::cout <<"L'information saisi est incorrect"<<std::endl;
+        std::cout << "Cette information contient au moins "<<requiredLen<<" caractère" << std::endl;
+        std::cout << "Veuillez réessayer !" << std::endl;
+        std::cout << msg;
+        std::cin  >> currentInput;
+    }
+    return currentInput;
+}
 
 CloudIO::CloudIO() {
     _logger = new Logger("GoogleDriveClient.cpp");
     _localSettings = new LocalSettings();
-    const auto acces_token = _localSettings->getLocalConfig("access_token");
-    if(acces_token.has_value()) {
-        set_token(acces_token.value());
+    if(!_localSettings->isloadingRequiredSettings()) {
+        std::cout << "Certains informations nécessaires n'ont pas été trouvé !"<<std::endl;
+        std::cout << "Veuillez s'il vous plaît les renseigner"<< std::endl;
+        _localSettings->setLocalConfig("client_secret",getInput("1. Votre Client Secret : ",35));
+        _localSettings->setLocalConfig("client_id",    getInput("2. Votre Client Id : ",72));
+        _localSettings->setLocalConfig("refresh_token",getInput("3. Votre Refresh Token : ",103));
     }
+    auto access_token = _localSettings->getLocalConfig("access_token");
+    if(access_token.has_value()) dsConfig::access_token   = _localSettings->getLocalConfig("access_token").value();
+    dsConfig::client_secret  = _localSettings->getLocalConfig("client_secret").value();
+    dsConfig::client_id      = _localSettings->getLocalConfig("client_id").value();
+    dsConfig::refresh_token  = _localSettings->getLocalConfig("refresh_token").value();
     curl_global_init(CURL_GLOBAL_ALL); //Initialisation global de curl
 }
 
@@ -78,7 +101,7 @@ std::string CloudIO::createToDrive(const std::string & name,bool isFile) {
     _curl = curl_easy_init();
     if(_curl) {
         struct curl_slist *headers = nullptr;
-        headers = curl_slist_append(headers, ("Authorization: Bearer " + _access_token).c_str());
+        headers = curl_slist_append(headers, ("Authorization: Bearer " + dsConfig::access_token).c_str());
         headers = curl_slist_append(headers, content_type);
 
         curl_easy_setopt(_curl, CURLOPT_URL, driveUrl);
@@ -149,7 +172,7 @@ bool CloudIO::deleteFileFromDrive(const std::string &elementName)
     _curl = curl_easy_init();
     if(_curl) {
         struct curl_slist *headers = nullptr;
-        headers = curl_slist_append(headers, ("Authorization: Bearer " + _access_token).c_str());
+        headers = curl_slist_append(headers, ("Authorization: Bearer " + dsConfig::access_token).c_str());
 
         curl_easy_setopt(_curl, CURLOPT_URL, driveUrl.c_str());
         curl_easy_setopt(_curl, CURLOPT_HTTPHEADER, headers);
@@ -204,9 +227,9 @@ bool CloudIO::regenaratetoken() {
     bool success = false;
     const char* url = "https://oauth2.googleapis.com/token";
     if(curl) {
-        std::string postData = "client_id=" + client_id + 
-                    "&client_secret=" + client_secret + 
-                    "&refresh_token=" + refresh_token + 
+        std::string postData = "client_id=" + dsConfig::client_id + 
+                    "&client_secret=" + dsConfig::client_secret + 
+                    "&refresh_token=" + dsConfig::refresh_token + 
                     "&grant_type=refresh_token";
         curl_easy_setopt(curl,CURLOPT_URL,url);
         curl_easy_setopt(curl,CURLOPT_POSTFIELDS,postData.data());
@@ -229,8 +252,8 @@ bool CloudIO::regenaratetoken() {
                 if(json.contains("access_token")) {
                     const std::string msg = "new token = "+std::string(json["access_token"]);
                     _logger->log(LogLevel::INFO,msg.c_str());
-                    set_token(json["access_token"]);
-                    _localSettings->setLocalConfig("access_token",json["access_token"]);
+                    dsConfig::access_token = json["access_token"];
+                    _localSettings->setLocalConfig("access_token",dsConfig::access_token);
                     success = true;
                 } else {
                     _logger->log(LogLevel::ERROR,"Réponse reçu sans le nouveau token");
